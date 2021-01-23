@@ -5,7 +5,6 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
 const Todo = require("./todo");
-const { request, response } = require("express");
 const secretKey = "TDCX@fe";
 app.use(cors());
 
@@ -39,13 +38,14 @@ const checkIdExist = (request, response, next) => {
   const { id } = request.params;
 
   Todo.getById({ id }, (err, data) => {
+    console.log(data);
     if (err) {
       response.status(400).json();
     }
     if (!data) {
       response.status(404).json();
     } else {
-      request.params.task = data;
+      request.params.task = data[0];
       return next();
     }
   });
@@ -54,6 +54,7 @@ const checkIdExist = (request, response, next) => {
 app.get("/dashboard", middleware, (request, response) => {
   const email = request.params.email;
   Todo.all({ email }, (err, data) => {
+    if (err) throw err;
     response.status(200).json({ tasks: data });
   });
 });
@@ -62,8 +63,12 @@ app.post("/tasks", middleware, (request, response) => {
   const email = request.params.email;
   const title = request.body.title;
   if (email && title) {
-    Todo.add({ email, title });
-    Todo.get({ title }, (err, data) => response.status(201).json(data));
+    Todo.add({ email, title }, (err, data) => {
+      if (err) throw err;
+      response
+        .status(200)
+        .json({ title, completed: 0, id: data.insertId, email });
+    });
   } else {
     response.status(400).json();
   }
@@ -77,7 +82,7 @@ app.put("/tasks/:id", middleware, checkIdExist, (request, response) => {
     if (err) {
       response.status(400).json();
     } else {
-      response.status(200).json();
+      response.status(200).json({ id, email, title, completed: status });
     }
   });
 });
