@@ -4,9 +4,12 @@ const app = express();
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
-const Todo = require("./todo");
-const secretKey = "TDCX@fe";
 app.use(cors());
+
+const Todo = require("./todo");
+const dotenv = require("dotenv");
+dotenv.config();
+const secretKey = process.env.SECRET_KEY;
 
 // parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -15,9 +18,10 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.post("/login", (request, response) => {
+  console.log(request.body);
   const email = request.body.email;
   const token = jwt.sign({ email }, secretKey);
-  response.send({ token, email });
+  return response.json({ token, email });
 });
 
 const middleware = (request, response, next) => {
@@ -54,7 +58,7 @@ const checkIdExist = (request, response, next) => {
 app.get("/dashboard", middleware, (request, response) => {
   const email = request.params.email;
   Todo.all({ email }, (err, data) => {
-    if (err) throw err;
+    if (err) return err;
     response.status(200).json({ tasks: data });
   });
 });
